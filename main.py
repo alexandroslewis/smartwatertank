@@ -4,38 +4,49 @@ from datetime import datetime
 import time
 import math
 from setup_gpio import *
+from bt_module import *
 
 if os.path.exists("calibration_data.txt") == False:
     f = open("calibration_data.txt", "w")
-    f.write("8 19 2 115 ")
-    print("Please empty tank and press button to continue") # text alert
-    awaitUserInput()
+    sendMessage("When do you wake up? (Please input value 0-12")
+    start_hour = int(awaitBTUserInput())
     time.sleep(.5)
-    print("Calibrating empty water tank") # text alert
-    empty_distance = getDistance()
-    f.write("%s " %(empty_distance))
-    print("Please fill tank with water and press button to continue") # text alert
-    awaitUserInput()
+    sendMessage("When do you go to bed? (Please input value 12-23")
+    stop_hour = int(awaitBTUserInput())
     time.sleep(.5)
-    print("Calibrating full water tank") # text alert
-    full_distance = getDistance()
-    f.write("%s" %(full_distance))
+    sendMessage("How many liters do you drink per day? (Please input value 1-3")
+    total_liters = float(awaitBTUserInput())
+    time.sleep(.5)
+    sendMessage("What's the diameter of the water tank? (Value should be in mm)")
+    tank_diameter = float(awaitBTUserInput())
+    time.sleep(.5)
+    sendMessage("Please empty tank and press button to continue")
+    awaitBTUserInput()
+    time.sleep(.5)
+    sendMessage("Calibrating empty water tank")
+    tank_empty = float(getDistance())
+    sendMessage("Please fill tank with water and press button to continue")
+    awaitBTUserInput()
+    time.sleep(.5)
+    sendMessage("Calibrating full water tank")
+    tank_full = float(getDistance())
+    f.write("%s %s %s %s %s %s" %(start_hour, stop_hour, total_liters, tank_diameter, tank_empty, tank_full))
     f.close()
-
-f = open("calibration_data.txt")
-(start_hour, stop_hour, total_liters, tank_diameter, tank_empty, tank_full) = f.read().split()
-start_hour = int(start_hour)
-stop_hour = int(stop_hour)
-total_liters = float(total_liters)
-tank_diameter = float(tank_diameter)
-tank_empty = float(tank_empty)
-tank_full = float(tank_full)
+else:
+    f = open("calibration_data.txt")
+    (start_hour, stop_hour, total_liters, tank_diameter, tank_empty, tank_full) = f.read().split()
+    start_hour = int(start_hour)
+    stop_hour = int(stop_hour)
+    total_liters = float(total_liters)
+    tank_diameter = float(tank_diameter)
+    tank_empty = float(tank_empty)
+    tank_full = float(tank_full)
 
 def checkWaterLeft(curr):
     percentage_left = (curr - tank_full) / (tank_empty - tank_full)
     while (1 - percentage_left) < .05:
-        print("Please fill tank with water and press button to continue") # text message
-        awaitUserInput() # maybe these will be replace with text trigger
+        sendMessage("Please fill tank with water and press button to continue")
+        awaitBTUserInput() # maybe these will be replace with text trigger
         time.sleep(.5)
         percentage_left = (getDistance() - tank_full) / (tank_empty - tank_full)
         
@@ -84,7 +95,7 @@ while True:
             vol_consumed = math.pi * pow(radius, 2) * difference
             liters_consumed = vol_consumed * .000001
             if liters_consumed < consume_rate:
-                print("Please drink", round((2 * consume_rate) - liters_consumed, 2), "liters this hour") # need to make this cumulative in case multiple hours are missed. also need to change out for text alert          
+                sendMessage("Please drink", round((2 * consume_rate) - liters_consumed, 2), "liters this hour") # need to make this cumulative in case multiple hours are missed.          
             time.sleep(60)
             
 cleanUpGPIO()
